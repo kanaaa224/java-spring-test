@@ -1,0 +1,9 @@
+services:
+  app:
+    image: eclipse-temurin:21
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    ports:
+      - "8080:8080"
+    tty: true
