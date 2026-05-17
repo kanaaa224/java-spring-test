@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body style="font-family: sans-serif;">
+        <script>
+            const defaultBaseURL = new URL('http://127.0.0.1:8080');
+
+            const call = async (request = {}) => {
+                const {
+                    baseURL = defaultBaseURL,
+                    path    = '/',
+                    query   = {},
+                    headers = {},
+                    body    = null,
+                    method  = body !== null ? 'POST' : 'GET'
+                } = request;
+
+                const endpoint = new URL(baseURL);
+
+                endpoint.pathname = `${endpoint.pathname.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
+                for(const [ key, value ] of Object.entries(query)) endpoint.searchParams.set(key, value);
+
+                const options = { method, headers: { ...headers } };
+
+                if(body !== null) {
+                    options.headers['Content-Type'] ??= 'application/json';
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(endpoint, options);
+                const text     = await response.text();
+
+                const data   = text ? (response.headers.get('content-type')?.includes('json') ? JSON.parse(text) : text) : null;
+                const result = { status: response.status, headers: Object.fromEntries(response.headers.entries()), data: data };
+
+                if(!response.ok) throw new Error(JSON.stringify(result));
+
+                return result;
+            };
+
+            const test = async (request) => {
+                try {
+                    const response = await call(request);
+
+                    console.log(response);
+
+                    document.querySelector('span').textContent = JSON.stringify(response, null, 2);
+                } catch(e) {
+                    console.error(e);
+
+                    document.querySelector('span').textContent = JSON.stringify(JSON.parse(e.message), null, 2);
+                }
+            };
+
+            const tests = [
+                { name: 'Get',    request: { method: 'GET' } },
+                { name: 'Post',   request: { method: 'POST' } },
+                { name: 'Put',    request: { method: 'PUT' } },
+                { name: 'Patch',  request: { method: 'PATCH' } },
+                { name: 'Delete', request: { method: 'DELETE' } }
+            ];
+
+            for(const { name, request } of tests) {
+                const button = document.createElement('button');
+
+                button.textContent = name;
+                button.addEventListener('click', () => test(request));
+
+                document.body.appendChild(button);
+            }
+        </script>
+
+        <p>response: <span>NULL</span></p>
+    </body>
+</html>
